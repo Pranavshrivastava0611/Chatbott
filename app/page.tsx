@@ -1,101 +1,125 @@
+'use client'
+
 import Image from "next/image";
+import { useCallback, useRef, useState,useEffect } from "react";
+import{Send,User,Bot} from "lucide-react"
+import { cors } from "hono/cors";
+import { useRouter } from "next/router";
+import { handle } from "hono/cloudflare-pages";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  
+
+  interface Message {
+
+    text : string ,
+    sender : 'user' | 'bot';
+  }
+
+  const [input,setinput] = useState<string>("");
+  const [message,setmessage] = useState<Message[]>([]);
+  const  [response,setResponse] = useState<string>('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(scrollToBottom, [message]);
+  
+  const handleSendMessage = async () => {
+    if (!input.trim()) return;
+
+    const newMessages  = [...message, { text: input, sender: 'user' }];
+    setmessage(newMessages);
+    setinput('');
+
+    try {
+      console.log(input)
+      const res = await fetch('/chatbot', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: input }),
+      });
+      console.log(res)
+      if (!res.ok) {
+        throw new Error('Failed to send message');
+      }
+
+      const data = await res.json();
+      console.log(data)
+      setmessage([...newMessages, { text: data.message, sender: data.sender }]);
+      setResponse(data.response);
+      setinput('');
+      
+    } catch (error) {
+      console.error('Error:', error);
+      setResponse('Failed to send message. Please try again.');
+    }
+  };
+
+
+
+  return (
+    <>
+    <main className="h-screen w-screen bg-black flex flex-col">
+      {/*navbar */}
+      <div className="bg-zinc-700 rounded-sm h-11 flex justify-center items-center font-bold font-san ">
+        <h1 className="text-transparent bg-clip-text text-3xl font-bold bg-gradient-to-r from-purple-800 to bg-pink-700 animate-pulse">
+          LATEST CHATBOT
+        </h1>
+      </div>
+      {/*input div */}
+      <div className="flex-1 overflow-auto p-4 space-y-4">
+        {message.map((message, index) => (
+          <div key={index} className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'} items-end space-x-2`}>
+            {message.sender === 'bot' && (
+              <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/50">
+                <Bot size={20} className="text-zinc-900" />
+              </div>
+            )}
+            <div className={`max-w-xs md:max-w-md p-3 rounded-lg ${
+              message.sender === 'user' 
+                ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-zinc-900' 
+                : 'bg-zinc-800 text-zinc-100 border border-purple-500'
+            } shadow-lg ${
+              message.sender === 'user'
+                ? 'shadow-cyan-500/50'
+                : 'shadow-purple-500/50'
+            } transition-all duration-300 ease-in-out animate-fadeIn`}>
+              {message.text.split("*").join(".")}
+            </div>
+            {message.sender === 'user' && (
+              <div className="w-8 h-8 rounded-full bg-cyan-500 flex items-center justify-center shadow-lg shadow-cyan-500/50">
+                <User size={20} className="text-zinc-900" />
+              </div>
+            )}
+          </div>
+        ))}
+        <div ref={messagesEndRef} />
+      </div>
+      {/*message div */}
+      <div className="p-4 bg-zinc-800 border-t border-zinc-700">
+        <div className="flex space-x-2">
+          <input
+            type="text"
+            className="flex-1 px-4 py-2 bg-zinc-700 text-zinc-100 border border-zinc-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all duration-300 ease-in-out placeholder-zinc-400"
+            placeholder="Type your message..."
+            value={input}
+            onChange={(e) => setinput(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+            onClick={handleSendMessage}
+          />
+          <button
+            className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-zinc-900 rounded-lg hover:from-purple-600 hover:to-pink-600 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-opacity-50 transition-all duration-300 ease-in-out transform hover:scale-105 shadow-lg shadow-pink-500/50">
+            <Send size={20} />
+          </button>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+      </div>
+    </main>
+    </>
   );
 }
