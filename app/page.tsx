@@ -1,11 +1,9 @@
 'use client'
 
-import Image from "next/image";
-import { useCallback, useRef, useState,useEffect } from "react";
-import{Send,User,Bot} from "lucide-react"
-import { cors } from "hono/cors";
-import { useRouter } from "next/router";
-import { handle } from "hono/cloudflare-pages";
+import { Bot, Send, User } from "lucide-react";
+import { Suspense, useEffect, useRef, useState } from "react";
+import Loader from "./components/Loader";
+
 
 export default function Home() {
 
@@ -61,8 +59,6 @@ export default function Home() {
     }
   };
 
-
-
   return (
     <>
     <main className="h-screen w-screen bg-black flex flex-col">
@@ -79,6 +75,7 @@ export default function Home() {
             {message.sender === 'bot' && (
               <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/50">
                 <Bot size={20} className="text-zinc-900" />
+                
               </div>
             )}
             <div className={`max-w-xs md:max-w-md p-3 rounded-lg ${
@@ -90,7 +87,7 @@ export default function Home() {
                 ? 'shadow-cyan-500/50'
                 : 'shadow-purple-500/50'
             } transition-all duration-300 ease-in-out animate-fadeIn`}>
-              {message.text.split("*").join(".")}
+             <Suspense fallback={<Loader/>}>{message.text.split("*").join(".")}</Suspense> 
             </div>
             {message.sender === 'user' && (
               <div className="w-8 h-8 rounded-full bg-cyan-500 flex items-center justify-center shadow-lg shadow-cyan-500/50">
