@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { headers } from "next/headers";
+
 
 export async function POST(request : Request) {
 const comment = await request.json();

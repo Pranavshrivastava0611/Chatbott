@@ -3,7 +3,6 @@
 import { Bot, Send, User } from "lucide-react";
 import { Suspense, useEffect, useRef, useState } from "react";
 import Loader from "./components/Loader";
-
 export default function Home() {
   
   interface Message {
@@ -13,7 +12,9 @@ export default function Home() {
 
   const [input, setInput] = useState<string>("");
   const [message, setMessage] = useState<Message[]>([]);
-  const [response, setResponse] = useState<string>('');
+  /* eslint-disable @typescript-eslint/no-unused-vars */
+const [response, setResponse] = useState<string>('');
+/* eslint-enable @typescript-eslint/no-unused-vars */
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isPending, setPending] = useState<boolean>(false);
 
