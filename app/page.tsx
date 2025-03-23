@@ -12,15 +12,16 @@ export default function Home() {
   }
 
   const [input, setInput] = useState<string>("");
-  const [message, setMessage] = useState<Message[]>([]); // ✅ Ensure message is an empty array initially
+  const [message, setMessage] = useState<Message[]>([]);
   const [response, setResponse] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [isPending, setPending] = useState<boolean>(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  useEffect(scrollToBottom, [message]);
+  useEffect(scrollToBottom, [message, isPending]);
 
   const handleSendMessage = async () => {
     if (!input.trim()) return;
@@ -31,6 +32,7 @@ export default function Home() {
     setInput('');
 
     try {
+      setPending(true);
       const res = await fetch('/chatbot', {
         method: 'POST',
         headers: {
@@ -38,7 +40,7 @@ export default function Home() {
         },
         body: JSON.stringify({ message: input }),
       });
-
+      
       if (!res.ok) {
         throw new Error('Failed to send message');
       }
@@ -46,10 +48,11 @@ export default function Home() {
       const data = await res.json();
       setMessage([...newMessages, { text: data.message, sender: 'bot' }]);
       setResponse(data.response);
-      setInput('');
+      setPending(false);
     } catch (error) {
       console.error('Error:', error);
       setResponse('Failed to send message. Please try again.');
+      setPending(false);
     }
   };
 
@@ -89,6 +92,23 @@ export default function Home() {
             )}
           </div>
         ))}
+        
+        {/* Typing Animation */}
+        {isPending && (
+          <div className="flex justify-start items-center space-x-2">
+            <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/50">
+              <Bot size={20} className="text-zinc-900" />
+            </div>
+            <div className="max-w-xs md:max-w-md p-3 rounded-lg bg-zinc-800 text-zinc-100 border border-purple-500 shadow-lg shadow-purple-500/50 transition-all duration-300 ease-in-out">
+              <div className="flex space-x-1">
+                <span className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce"></span>
+                <span className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce delay-150"></span>
+                <span className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce delay-300"></span>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div ref={messagesEndRef} />
       </div>
 
